@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel del barbero — La Navaja</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  header {
+    border-bottom: 1px solid var(--linea);
+    background: var(--negro-alt);
+  }
+  .nav { display:flex; align-items:center; justify-content:space-between; padding: 16px 0; }
+  .marca { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .marca span { font-size: 19px; color: var(--marfil); }
+
+  main { padding: 40px 0 70px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: var(--negro-alt);
+    border: 1px solid var(--linea);
+    border-radius: 6px;
+    padding: 20px;
+  }
+  .stat-card .num { font-family: 'Fraunces', serif; font-size: 32px; color: var(--dorado); }
+  .stat-card .lbl { color: var(--tinta); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .toolbar {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: end;
+    margin-bottom: 26px;
+    justify-content: space-between;
+  }
+  .toolbar-filtros { display: flex; gap: 14px; flex-wrap: wrap; }
+  .toolbar-filtros .campo { margin-bottom: 0; min-width: 160px; }
+
+  .tabla-wrap {
+    background: var(--negro-alt);
+    border: 1px solid var(--linea);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tinta);
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--linea);
+  }
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(201,160,74,0.1);
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(201,160,74,0.04); }
+  .num-turno { font-family: 'JetBrains Mono', monospace; color: var(--dorado); font-weight: 600; }
+  .celda-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-mini {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: var(--radio);
+    border: 1px solid var(--linea);
+    background: transparent;
+    color: var(--marfil);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-mini:hover { border-color: var(--dorado); color: var(--dorado-claro); }
+  .btn-mini.eliminar:hover { border-color: #c98c8c; color: #e19a9a; }
+
+  .vacio {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--tinta);
+  }
+  .vacio .pole { margin: 0 auto 18px; }
+
+  select.filtro-select { padding: 10px 12px; font-size: 13px; }
+
+  @media (max-width: 720px) {
+    .tabla-wrap { overflow-x: auto; }
+    table { min-width: 720px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a href="admin.html" class="marca">
+      <div class="pole"></div>
+      <span class="display">La Navaja · Panel</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <span class="mono" style="font-size:13px; color:var(--tinta);" id="saludo"></span>
+      <button class="btn btn-fantasma" id="btn-salir" style="padding:10px 18px; font-size:14px;">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="num" id="stat-hoy">0</div><div class="lbl">Citas hoy</div></div>
+    <div class="stat-card"><div class="num" id="stat-semana">0</div><div class="lbl">Esta semana</div></div>
+    <div class="stat-card"><div class="num" id="stat-pendientes">0</div><div class="lbl">Pendientes</div></div>
+    <div class="stat-card"><div class="num" id="stat-ingresos">$0</div><div class="lbl">Ingresos (confirmadas)</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-filtros">
+      <div class="campo">
+        <label for="filtro-barbero">Barbero</label>
+        <select id="filtro-barbero" class="filtro-select"><option value="">Todos</option></select>
+      </div>
+      <div class="campo">
+        <label for="filtro-fecha">Fecha</label>
+        <input type="date" id="filtro-fecha" class="filtro-select">
+      </div>
+      <div class="campo">
+        <label for="filtro-estado">Estado</label>
+        <select id="filtro-estado" class="filtro-select">
+          <option value="">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="confirmada">Confirmada</option>
+          <option value="completada">Completada</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-fantasma" id="btn-limpiar-filtros" style="padding:10px 18px; font-size:14px;">Limpiar filtros</button>
+  </div>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Cliente</th>
+          <th>Servicio</th>
+          <th>Barbero</th>
+          <th>Fecha / hora</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-tabla"></tbody>
+    </table>
+    <div class="vacio" id="estado-vacio" style="display:none;">
+      <div class="pole" style="width:40px; height:40px;"></div>
+      <p>No hay citas que coincidan con estos filtros.</p>
+    </div>
+  </div>
+
+</main>
+
+<script src="data.js"></script>
+<script>
+  // --- protección de la página ---
+  if (!DB.haySesion()) {
+    window.location.href = 'login.html';
+  }
+
+  document.getElementById('btn-salir').addEventListener('click', () => {
+    DB.cerrarSesion();
+    window.location.href = 'index.html';
+  });
+
+  const sesion = JSON.parse(localStorage.getItem(DB.SESION_KEY) || '{}');
+  document.getElementById('saludo').textContent = `Hola, ${sesion.usuario || 'barbero'}`;
+
+  // --- poblar filtro de barberos ---
+  const filtroBarbero = document.getElementById('filtro-barbero');
+  DB.BARBEROS.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.nombre;
+    filtroBarbero.appendChild(opt);
+  });
+
+  const filtroFecha = document.getElementById('filtro-fecha');
+  const filtroEstado = document.getElementById('filtro-estado');
+  const cuerpoTabla = document.getElementById('cuerpo-tabla');
+  const estadoVacio = document.getElementById('estado-vacio');
+
+  function estadoSiguiente(estadoActual) {
+    // ciclo rápido de estados al hacer clic en "Avanzar"
+    const orden = ['pendiente', 'confirmada', 'completada'];
+    const i = orden.indexOf(estadoActual);
+    return orden[(i + 1) % orden.length] === estadoActual ? null : orden[Math.min(i + 1, orden.length - 1)];
+  }
+
+  function renderTabla() {
+    const citas = DB.obtenerCitas().sort((a, b) => {
+      if (a.fecha === b.fecha) return a.hora.localeCompare(b.hora);
+      return a.fecha.localeCompare(b.fecha);
+    });
+
+    const fBarbero = filtroBarbero.value;
+    const fFecha = filtroFecha.value;
+    const fEstado = filtroEstado.value;
+
+    const filtradas = citas.filter(c =>
+      (!fBarbero || c.barberoId === fBarbero) &&
+      (!fFecha || c.fecha === fFecha) &&
+      (!fEstado || c.estado === fEstado)
+    );
+
+    cuerpoTabla.innerHTML = '';
+
+    if (filtradas.length === 0) {
+      estadoVacio.style.display = 'block';
+    } else {
+      estadoVacio.style.display = 'none';
+    }
+
+    filtradas.forEach(c => {
+      const servicio = DB.servicio(c.servicioId);
+      const barbero = DB.barbero(c.barberoId);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="num-turno">№${c.numero}</td>
+        <td>
+          <div>${c.nombre}</div>
+          <div class="mono" style="color:var(--tinta); font-size:12px;">${c.telefono}</div>
+        </td>
+        <td>${servicio ? servicio.nombre : '—'}</td>
+        <td>${barbero ? barbero.nombre : '—'}</td>
+        <td class="mono">${formatearFecha(c.fecha)}<br>${c.hora}</td>
+        <td><span class="badge badge-${c.estado}">${c.estado}</span></td>
+        <td>
+          <div class="celda-acciones">
+            ${c.estado === 'pendiente' ? `<button class="btn-mini" data-accion="confirmar" data-id="${c.id}">Confirmar</button>` : ''}
+            ${c.estado === 'confirmada' ? `<button class="btn-mini" data-accion="completar" data-id="${c.id}">Completar</button>` : ''}
+            ${c.estado !== 'cancelada' && c.estado !== 'completada' ? `<button class="btn-mini" data-accion="cancelar" data-id="${c.id}">Cancelar</button>` : ''}
+            <button class="btn-mini eliminar" data-accion="eliminar" data-id="${c.id}">Eliminar</button>
+          </div>
+        </td>
+      `;
+      cuerpoTabla.appendChild(tr);
+    });
+
+    renderStats(citas);
+  }
+
+  function renderStats(citas) {
+    const hoy = new Date().toISOString().split('T')[0];
+    const inicioSemana = new Date();
+    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
+    const inicioSemanaISO = inicioSemana.toISOString().split('T')[0];
+
+    const activas = citas.filter(c => c.estado !== 'cancelada');
+    const hoyCount = activas.filter(c => c.fecha === hoy).length;
+    const semanaCount = activas.filter(c => c.fecha >= inicioSemanaISO).length;
+    const pendientesCount = citas.filter(c => c.estado === 'pendiente').length;
+    const ingresos = citas
+      .filter(c => c.estado === 'confirmada' || c.estado === 'completada')
+      .reduce((sum, c) => {
+        const s = DB.servicio(c.servicioId);
+        return sum + (s ? s.precio : 0);
+      }, 0);
+
+    document.getElementById('stat-hoy').textContent = hoyCount;
+    document.getElementById('stat-semana').textContent = semanaCount;
+    document.getElementById('stat-pendientes').textContent = pendientesCount;
+    document.getElementById('stat-ingresos').textContent = `$${ingresos}`;
+  }
+
+  cuerpoTabla.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-accion]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const accion = btn.dataset.accion;
+
+    if (accion === 'confirmar') {
+      DB.actualizarEstado(id, 'confirmada');
+      mostrarToast('Cita confirmada.');
+    } else if (accion === 'completar') {
+      DB.actualizarEstado(id, 'completada');
+      mostrarToast('Cita marcada como completada.');
+    } else if (accion === 'cancelar') {
+      DB.actualizarEstado(id, 'cancelada');
+      mostrarToast('Cita cancelada.');
+    } else if (accion === 'eliminar') {
+      if (confirm('¿Eliminar esta cita permanentemente?')) {
+        DB.eliminarCita(id);
+        mostrarToast('Cita eliminada.');
+      }
+    }
+    renderTabla();
+  });
+
+  [filtroBarbero, filtroFecha, filtroEstado].forEach(el =>
+    el.addEventListener('change', renderTabla)
+  );
+
+  document.getElementById('btn-limpiar-filtros').addEventListener('click', () => {
+    filtroBarbero.value = '';
+    filtroFecha.value = '';
+    filtroEstado.value = '';
+    renderTabla();
+  });
+
+  renderTabla();
+
+  // refresca si el cliente agenda una cita en otra pestaña
+  window.addEventListener('storage', (e) => {
+    if (e.key === DB.CITAS_KEY) renderTabla();
+  });
+</script>
+
+</body>
+</html>
